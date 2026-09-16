@@ -1,0 +1,17 @@
+[project]
+name = "aamcf-data"
+version = "0.1.0"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "python-dateutil>=2.9",
+    "scikit-learn>=1.5",
+    "pyarrow>=16.0",
+    "orjson>=3.10",
+    "tqdm>=4.66",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

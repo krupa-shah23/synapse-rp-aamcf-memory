@@ -1,0 +1,13 @@
+[project]
+name = "aamcf"
+version = "0.1.0"
+requires-python = ">=3.11,<3.13"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
