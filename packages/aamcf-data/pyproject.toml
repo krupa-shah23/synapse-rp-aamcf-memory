@@ -10,6 +10,7 @@ dependencies = [
     "pyarrow>=16.0",
     "orjson>=3.10",
     "tqdm>=4.66",
+    "huggingface-hub>=1.31.0",
 ]
 
 [build-system]
