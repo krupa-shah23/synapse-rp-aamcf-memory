@@ -14,7 +14,6 @@ resolution-markers = [
 members = [
     "aamcf",
     "aamcf-data",
-    "aamcf-extract",
 ]
 
 [[package]]
@@ -63,11 +62,6 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "tqdm", specifier = ">=4.66" },
 ]
-
-[[package]]
-name = "aamcf-extract"
-version = "0.1.0"
-source = { editable = "packages/aamcf-extract" }
 
 [[package]]
 name = "anyio"
