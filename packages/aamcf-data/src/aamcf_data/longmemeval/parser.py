@@ -44,8 +44,8 @@ def flatten_sessions(questions: list[dict]) -> pd.DataFrame:
         for idx, (session_id, date_str, turns) in enumerate(zip(session_ids, dates, sessions)):
             session_ts = dateparser.parse(date_str, fuzzy=True) if date_str else None
             session_text = "\n".join(turn.get("content", "") or "" for turn in turns)
-            answer_turn_text = "\n".join(
-                turn.get("content", "") or "" for turn in turns if turn.get("has_answer")
+            session_text_roles = "\n".join(
+                f"{turn.get('role', '')}: {turn.get('content', '') or ''}" for turn in turns
             )
             rows.append({
                 "question_id": question_id,
@@ -53,7 +53,7 @@ def flatten_sessions(questions: list[dict]) -> pd.DataFrame:
                 "session_index": idx,
                 "session_date": session_ts.isoformat() if session_ts else None,
                 "session_text": session_text,
-                "answer_turn_text": answer_turn_text,
+                "session_text_roles": session_text_roles,
                 "num_turns": len(turns),
             })
     return pd.DataFrame(rows)

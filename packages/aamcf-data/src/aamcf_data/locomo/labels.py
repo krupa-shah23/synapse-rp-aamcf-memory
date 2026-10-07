@@ -38,9 +38,11 @@ def compute_label_distant(turns_df: pd.DataFrame, evidence_index: dict, qid_to_s
 
 
 def compute_label_overlap(turns_df: pd.DataFrame, qa_df: pd.DataFrame, tau: float = 0.4) -> pd.Series:
-    answers_by_conv = qa_df.groupby("conversation_id")["answer_text"].apply(list).to_dict()
+    # LRE drops adversarial (category 5) questions; they carry no gold answer.
+    answered = qa_df[qa_df["category"] != 5]
+    answers_by_conv = answered.groupby("conversation_id")["answer_text"].apply(list).to_dict()
     return turns_df.apply(
-        lambda row: label_overlap(row["text"] or "", answers_by_conv.get(row["conversation_id"], []), tau=tau),
+        lambda row: label_overlap(row["overlap_text"], answers_by_conv.get(row["conversation_id"], []), tau=tau),
         axis=1,
     )
 

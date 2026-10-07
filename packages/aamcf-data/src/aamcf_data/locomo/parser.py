@@ -47,6 +47,7 @@ def flatten_turns(conversations: list[dict]) -> pd.DataFrame:
                     "turn_id": turn["dia_id"],
                     "speaker": turn.get("speaker"),
                     "text": text,
+                    "overlap_text": turn.get("text") or (f"[image: {turn['blip_caption']}]" if turn.get("blip_caption") else ""),
                     "modality": "image" if is_image else "text",
                     "turn_index_in_session": idx,
                 })

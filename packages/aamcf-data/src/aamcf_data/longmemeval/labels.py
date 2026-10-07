@@ -28,14 +28,15 @@ def compute_label_supervised(sessions_df: pd.DataFrame, evidence_index: dict) ->
 
 
 def compute_label_overlap(sessions_df: pd.DataFrame, questions_df: pd.DataFrame, tau: float = 0.4) -> pd.Series:
-    """Compares the has_answer turn(s) within a session against the
-    question's answer, not the whole concatenated session — a 2-token
-    answer can't clear tau against an 805-token session, but it can clear
-    it against the few turns actually flagged as evidence."""
+    """LRE's annotation-free proxy: the whole session (role-prefixed text,
+    as LRE builds it) against the question's gold answer, answer-side recall
+    >= tau. Deliberately independent of answer_session_ids and has_answer —
+    has_answer is set only inside gold sessions, so using it here would make
+    this label a subset of label_supervised."""
     answers_by_question = questions_df.set_index("question_id")["answer_text"].to_dict()
     return sessions_df.apply(
         lambda row: label_overlap(
-            row["answer_turn_text"], [answers_by_question.get(row["question_id"], "")], tau=tau
+            row["session_text_roles"], [answers_by_question.get(row["question_id"], "")], tau=tau
         ),
         axis=1,
     )

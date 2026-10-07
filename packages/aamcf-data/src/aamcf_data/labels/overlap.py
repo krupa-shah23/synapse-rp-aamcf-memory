@@ -1,45 +1,46 @@
 """Shared label-construction utilities across LoCoMo and LongMemEval.
 
-label_overlap = LRE's annotation-free proxy: a unit (turn or session) is
-positive if it shares >= tau content-token overlap with the eventual
-answer text. tau=0.4 is LRE's validated threshold (flat-optimal in [0.3, 0.5]
-per their joint sweep across both datasets).
+label_overlap reimplements LRE's annotation-free proxy exactly as in the LRE
+repo (experiments/conversational_qa/proxy_labels.py, normalize in dataset.py):
+a unit (turn or session) is positive if its tokens cover >= tau of some
+answer's tokens. The fraction is answer-side recall, |answer ∩ unit| / |answer|,
+not the share of the unit found in the answer. tau=0.4 is LRE's threshold
+(flat-optimal in [0.3, 0.5] per their joint sweep across both datasets).
 """
 
 from __future__ import annotations
 
-STOPWORDS = frozenset({
-    "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
-    "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them",
-    "my", "your", "his", "its", "our", "their",
-    "and", "or", "but", "if", "so", "because", "as", "of", "at", "by", "for",
-    "with", "about", "against", "between", "into", "through", "during",
-    "to", "from", "in", "out", "on", "off", "over", "under",
-    "do", "does", "did", "doing", "have", "has", "had", "having",
-    "this", "that", "these", "those", "there", "here",
-    "not", "no", "yes", "okay", "ok", "sure", "yeah", "um", "uh",
-})
+import re
+
+_ARTICLES = re.compile(r"\b(a|an|the)\b")
+_PUNCT = re.compile(r"[^\w\s]")
+
+
+def normalize(text: str) -> str:
+    """LRE's normalization: lowercase, drop articles, drop punctuation."""
+    text = _ARTICLES.sub(" ", text.lower())
+    text = _PUNCT.sub("", text)
+    return " ".join(text.split())
 
 
 def content_tokens(text: str) -> set[str]:
-    """Lowercase content-word tokens, stopwords stripped. Exact lexical
-    overlap, not semantic — this is intentionally the cheap/annotation-free
-    proxy, not a similarity model."""
-    if not text:
-        return set()
-    raw = text.lower().split()
-    cleaned = {tok.strip(".,!?;:\"'()[]") for tok in raw}
-    return {tok for tok in cleaned if tok and tok not in STOPWORDS}
+    """Token set after LRE's normalization. Exact lexical match, no stopword
+    list beyond articles — intentionally the cheap/annotation-free proxy."""
+    return set(normalize(text or "").split())
 
 
 def label_overlap(unit_text: str, answer_texts: list[str], tau: float = 0.4) -> int:
-    """1 if unit_text shares >= tau fraction of its content tokens with
-    ANY of the given answers, else 0."""
+    """1 if the unit's tokens cover >= tau of ANY answer's tokens (answer-side
+    recall), else 0. Empty answers are skipped, as in LRE."""
     unit_toks = content_tokens(unit_text)
-    if not unit_toks or not answer_texts:
-        return 0
-    best = max(
-        (len(unit_toks & content_tokens(a)) / len(unit_toks) for a in answer_texts),
-        default=0.0,
-    )
+    best = 0.0
+    for a in answer_texts:
+        if not a or not a.strip():
+            continue
+        ans_toks = content_tokens(a)
+        if not ans_toks:
+            continue
+        inter = len(unit_toks & ans_toks)
+        if inter:
+            best = max(best, inter / len(ans_toks))
     return int(best >= tau)
