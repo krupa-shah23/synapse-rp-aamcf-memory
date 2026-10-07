@@ -1,8 +1,17 @@
 .venv/
 __pycache__/
+*.pyc
+*.pyo
 *.egg-info/
 .env
 .pytest_cache/
 .ruff_cache/
 
+# Local datasets
 packages/aamcf-data/data/
+
+# Large/generated Kaggle artifacts
+packages/aamcf-data/kaggle_upload/data/
+packages/aamcf-data/kaggle_upload/distilbert-base-uncased/model.safetensors
+packages/aamcf-data/kaggle_upload/distilbert-base-uncased/.cache/
+packages/aamcf-data/kaggle_upload.zip
