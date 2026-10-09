@@ -9,6 +9,7 @@ epoch (neg_ratio x positives) to handle the ~4% positive rate cheaply.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import time
 from pathlib import Path
@@ -62,6 +63,7 @@ def main():
     ap.add_argument("--lr", type=float, default=2e-5)
     ap.add_argument("--neg-ratio", type=float, default=3.0)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--final", action="store_true", help="deployable model: hold out 10%% of groups as validation, pick the F1 threshold on it, save model + tokenizer + threshold")
     a = ap.parse_args()
 
     torch.manual_seed(a.seed)
@@ -75,7 +77,15 @@ def main():
     ids, unit = enc["input_ids"], np.array(enc["unit_idx"])
     wlabel = df["label"].to_numpy()[unit]
 
-    tr, te, removed = list(split_folds(df, cv))[a.fold]
+    if a.final:
+        groups = np.array(sorted(df["group"].unique()))
+        val = rng.choice(groups, max(1, round(0.1 * len(groups))), replace=False)
+        is_val = df["group"].isin(val).to_numpy()
+        hashes = df["text"].map(hash).to_numpy()
+        tr = np.flatnonzero(~is_val & ~np.isin(hashes, hashes[is_val]))
+        te, removed = np.flatnonzero(is_val), int((~is_val).sum() - len(tr))
+    else:
+        tr, te, removed = list(split_folds(df, cv))[a.fold]
     tr_w, te_w = np.flatnonzero(np.isin(unit, tr)), np.flatnonzero(np.isin(unit, te))
     pos_w, neg_w = tr_w[wlabel[tr_w] == 1], tr_w[wlabel[tr_w] == 0]
     print(f"fold {a.fold}: train units {len(tr)} (dedup removed {removed}), test units {len(te)} | train windows pos {len(pos_w)} neg {len(neg_w)} | test windows {len(te_w)}")
@@ -109,6 +119,18 @@ def main():
     out["label"] = gold[res.index]
     auc, n = macro_auc(out)
     print(f"RESULT {a.dataset} {a.label} fold {a.fold}: macro-AUC {auc:.3f} over {n} groups | pooled AUC {roc_auc_score(out['label'], out['score']):.3f}")
+    if a.final:
+        from sklearn.metrics import precision_recall_curve
+        pr, rc, th = precision_recall_curve(out["label"], out["score"])
+        f1 = 2 * pr[:-1] * rc[:-1] / np.maximum(pr[:-1] + rc[:-1], 1e-9)
+        best = int(np.argmax(f1))
+        d = Path(f"data/gate/final_{a.dataset}_{a.label}")
+        model.save_pretrained(d)
+        tok.save_pretrained(d)
+        meta = {"threshold": float(th[best]), "val_f1": float(f1[best]), "val_precision": float(pr[best]), "val_recall": float(rc[best]), "val_macro_auc": auc, "val_groups": [str(g) for g in val], "dataset": a.dataset, "label": a.label, "epochs": a.epochs, "max_len": 512, "stride": 128, "aggregation": "max over windows"}
+        (d / "gate_meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        print(f"SAVED {d} | threshold {th[best]:.3f} val F1 {f1[best]:.3f} P {pr[best]:.3f} R {rc[best]:.3f}")
+        return
     p = Path(f"data/gate/{a.dataset}_{a.label}_fold{a.fold}.parquet")
     p.parent.mkdir(parents=True, exist_ok=True)
     out[["group", "key", "label", "score"]].to_parquet(p, index=False)

@@ -1,7 +1,7 @@
 """Show exactly what the DistilBERT gate is given: the first rows of the units
 table (group, key, text, label) for each dataset and label type, plus one
 tokenised example. Run from packages/aamcf-data:
-    uv run python scripts/peek_training_rows.py
+    uv run python scripts/inspect/peek_training_rows.py
 """
 
 import pandas as pd

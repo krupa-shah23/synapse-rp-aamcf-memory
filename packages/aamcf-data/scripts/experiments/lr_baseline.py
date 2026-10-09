@@ -3,7 +3,7 @@ L2 logistic regression with balanced class weights, scored by macro-AUC
 against gold. A reimplementation from the paper's description (LRE's exact
 TF-IDF settings and regularisation strength are not known to us).
 
-Usage: python scripts/lr_baseline.py {locomo|lme} {label_supervised|label_overlap}
+Usage: python scripts/experiments/lr_baseline.py {locomo|lme} {label_supervised|label_overlap}
 """
 
 import math
